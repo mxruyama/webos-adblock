@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>AdBlocker</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="header">
+      <div class="brand">
+        <img class="brand-icon" src="largeIcon.png" alt="">
+        <h1 class="brand-title">AdBlocker</h1>
+      </div>
+      <div class="header-meta">
+        <span id="mock-tag" class="tag hidden">Simulação</span>
+        <span id="version" class="version"></span>
+      </div>
+    </header>
+
+    <section id="root-banner" class="banner hidden">
+      <div class="banner-text">
+        <p class="banner-title">Serviço sem root</p>
+        <p class="banner-body">Para alterar o /etc/hosts, o serviço precisa de root concedido pelo Homebrew Channel.</p>
+      </div>
+      <button id="btn-root" class="btn btn-warning" type="button">Conceder root</button>
+    </section>
+
+    <div class="panels">
+      <section class="card status-card">
+        <p class="card-title">Status</p>
+        <div class="status-line">
+          <span id="status-dot" class="dot dot-unknown"></span>
+          <span id="status-text" class="status-text">Consultando…</span>
+        </div>
+        <p id="status-count" class="status-count"></p>
+        <p id="status-updated" class="status-meta"></p>
+        <p id="status-persist" class="status-meta"></p>
+      </section>
+
+      <section class="card list-card">
+        <p class="card-title">Lista de bloqueio</p>
+        <div class="radio-group" role="radiogroup">
+          <button id="list-lite" class="radio" type="button" role="radio" data-list="lite" aria-checked="true">
+            <span class="radio-mark"></span>
+            <span class="radio-label"><strong>Leve</strong> — anúncios e telemetria LG</span>
+            <span class="badge hidden">em uso</span>
+          </button>
+          <button id="list-full" class="radio" type="button" role="radio" data-list="full" aria-checked="false">
+            <span class="radio-mark"></span>
+            <span class="radio-label"><strong>Completa</strong> — StevenBlack + LG</span>
+            <span class="badge hidden">em uso</span>
+          </button>
+        </div>
+        <p class="list-hint">A lista escolhida vale para Ativar e Atualizar.</p>
+      </section>
+    </div>
+
+    <div class="actions">
+      <button id="btn-enable" class="btn btn-primary" type="button">Ativar Bloqueio</button>
+      <button id="btn-disable" class="btn btn-danger" type="button">Desativar Bloqueio</button>
+      <button id="btn-update" class="btn" type="button">Atualizar Listas</button>
+    </div>
+
+    <div id="message" class="message" role="status" aria-live="polite">
+      <p id="message-text" class="message-text"></p>
+      <p id="message-warning" class="message-warning"></p>
+    </div>
+
+    <footer class="footer">Setas para navegar · OK para selecionar · Voltar para sair</footer>
+  </div>
+
+  <div id="overlay" class="overlay hidden" aria-hidden="true">
+    <div class="overlay-box">
+      <span class="spinner"></span>
+      <span class="overlay-text">Processando…</span>
+    </div>
+  </div>
+
+  <script src="js/luna.js"></script>
+  <script src="js/spatial-nav.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

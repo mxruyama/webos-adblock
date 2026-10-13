@@ -1,0 +1,433 @@
+/*
+ * Tela unica 1920x1080, tema escuro. Compativel com Chrome 38 (webOS 3):
+ * sem custom properties, sem grid, sem gap em flex, sem :focus-visible, sem sticky.
+ */
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #101418;
+  color: #e8edf2;
+  font-family: "LG Smart UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 32px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+
+p,
+h1 {
+  margin: 0;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 48px 96px;
+  box-sizing: border-box;
+}
+
+/* Cabecalho */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+}
+
+.brand-icon {
+  width: 80px;
+  height: 80px;
+  margin-right: 24px;
+}
+
+.brand-title {
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+}
+
+.version {
+  font-size: 28px;
+  color: #9aa7b4;
+}
+
+.tag {
+  margin-right: 24px;
+  padding: 4px 20px;
+  border-radius: 999px;
+  background: rgba(243, 156, 18, 0.18);
+  color: #f5b041;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+/* Banner de root */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding: 28px 32px 28px 40px;
+  border-left: 8px solid #f39c12;
+  border-radius: 14px;
+  background: rgba(243, 156, 18, 0.12);
+}
+
+.banner-text {
+  margin-right: 40px;
+}
+
+.banner-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #f5b041;
+}
+
+.banner-body {
+  font-size: 28px;
+  color: #d5dce3;
+}
+
+/* Cartoes */
+
+.panels {
+  display: flex;
+  margin-bottom: 32px;
+}
+
+.card {
+  flex: 1;
+  padding: 32px 40px;
+  border: 2px solid #232b34;
+  border-radius: 18px;
+  background: #181e25;
+  box-sizing: border-box;
+}
+
+.status-card {
+  margin-right: 32px;
+}
+
+.card-title {
+  margin-bottom: 16px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #9aa7b4;
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.dot {
+  width: 40px;
+  height: 40px;
+  margin-right: 24px;
+  border-radius: 50%;
+  background: #5d6873;
+}
+
+.dot-on {
+  background: #2ecc71;
+  box-shadow: 0 0 24px rgba(46, 204, 113, 0.6);
+}
+
+.dot-off {
+  background: #e74c3c;
+  box-shadow: 0 0 24px rgba(231, 76, 60, 0.5);
+}
+
+.status-text {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.status-text.is-on {
+  color: #2ecc71;
+}
+
+.status-text.is-off {
+  color: #e74c3c;
+}
+
+.status-count {
+  margin-bottom: 12px;
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.status-meta {
+  font-size: 28px;
+  color: #9aa7b4;
+}
+
+.status-meta.is-warning {
+  color: #f5b041;
+}
+
+/* Selecao de lista (radio com botoes) */
+
+.radio {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 88px;
+  margin: 0 0 16px 0;
+  padding: 0 28px;
+  border: 3px solid transparent;
+  border-radius: 14px;
+  background: #222a33;
+  color: #e8edf2;
+  font-family: inherit;
+  font-size: 30px;
+  text-align: left;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: transform 0.12s ease-out, background-color 0.12s ease-out;
+}
+
+.radio-mark {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  margin-right: 24px;
+  border: 4px solid #9aa7b4;
+  border-radius: 50%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.radio.is-selected {
+  border-color: #2ecc71;
+  background: rgba(46, 204, 113, 0.12);
+}
+
+.radio.is-selected .radio-mark {
+  border-color: #2ecc71;
+}
+
+.radio.is-selected .radio-mark:after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2ecc71;
+}
+
+.radio-label {
+  flex: 1;
+}
+
+.badge {
+  margin-left: 24px;
+  padding: 2px 18px;
+  border-radius: 999px;
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.list-hint {
+  font-size: 28px;
+  color: #9aa7b4;
+}
+
+/* Botoes */
+
+.actions {
+  display: flex;
+  margin-bottom: 28px;
+}
+
+.actions .btn {
+  flex: 1;
+  margin-right: 32px;
+}
+
+.actions .btn:last-child {
+  margin-right: 0;
+}
+
+.btn {
+  height: 104px;
+  padding: 0 40px;
+  border: 0;
+  border-radius: 14px;
+  background: #2a333d;
+  color: #e8edf2;
+  font-family: inherit;
+  font-size: 36px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease-out, background-color 0.12s ease-out;
+}
+
+.btn-primary {
+  background: #2ecc71;
+  color: #0b1d12;
+}
+
+.btn-danger {
+  background: #c0392b;
+  color: #ffffff;
+}
+
+.btn-warning {
+  flex-shrink: 0;
+  height: 88px;
+  background: #f39c12;
+  color: #1d1300;
+}
+
+/* Hover (ponteiro do Magic Remote) e foco (setas) */
+
+.btn:hover:not([disabled]),
+.radio:hover:not([disabled]) {
+  background-color: #34404c;
+}
+
+.btn-primary:hover:not([disabled]) {
+  background-color: #45d988;
+}
+
+.btn-danger:hover:not([disabled]) {
+  background-color: #d64535;
+}
+
+.btn-warning:hover:not([disabled]) {
+  background-color: #f5b041;
+}
+
+.radio.is-selected:hover:not([disabled]) {
+  background-color: rgba(46, 204, 113, 0.2);
+}
+
+.btn:focus,
+.radio:focus {
+  outline: 6px solid #f1c40f;
+  outline-offset: 4px;
+  box-shadow: 0 0 32px 6px rgba(241, 196, 15, 0.45);
+  transform: scale(1.03);
+}
+
+.radio:focus {
+  transform: scale(1.015);
+}
+
+.btn[disabled],
+.radio[disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Mensagens */
+
+.message {
+  min-height: 84px;
+}
+
+.message-text {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.message-text.is-success {
+  color: #2ecc71;
+}
+
+.message-text.is-error {
+  color: #e74c3c;
+}
+
+.message-warning {
+  font-size: 28px;
+  color: #f5b041;
+}
+
+.footer {
+  margin-top: auto;
+  font-size: 28px;
+  color: #8593a1;
+  text-align: center;
+}
+
+/* Overlay "Processando…" */
+
+.overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 20, 24, 0.78);
+}
+
+.overlay-box {
+  display: flex;
+  align-items: center;
+  padding: 40px 64px;
+  border: 2px solid #2a333d;
+  border-radius: 18px;
+  background: #181e25;
+}
+
+.overlay-text {
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.spinner {
+  width: 56px;
+  height: 56px;
+  margin-right: 32px;
+  border: 6px solid #2a333d;
+  border-top-color: #f1c40f;
+  border-radius: 50%;
+  box-sizing: border-box;
+  -webkit-animation: spin 0.9s linear infinite;
+  animation: spin 0.9s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  from { -webkit-transform: rotate(0deg); }
+  to { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
