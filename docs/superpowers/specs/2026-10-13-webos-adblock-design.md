@@ -180,11 +180,11 @@ fi
 Grava a versão em `app/appinfo.json`, `service/package.json` e `package.json`.
 
 ### .github/workflows/ci.yml
-Em push/PR: Node 20, `npm ci`, `npm test`, `npm run package` (valida empacotamento).
+Em push/PR: Node 22, `npm ci`, `npm test`, `npm run package` (valida empacotamento).
 
 ### .github/workflows/release.yml
 Em push de tag `v*` (permissões `contents: write`):
-1. checkout, Node 20, `npm ci`, `npm test`.
+1. checkout, Node 22, `npm ci`, `npm test`.
 2. `node scripts/set-version.js ${GITHUB_REF_NAME#v}`.
 3. `npx ares-package app service -o dist --no-minify` (de `@webos-tools/cli` em devDependencies).
 4. Release via `softprops/action-gh-release@v2` com `dist/*.ipk`.
