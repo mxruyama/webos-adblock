@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testes
+        run: npm test
+
+      - name: Gravar a versão da tag nos arquivos do projeto
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          node scripts/set-version.js "$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Empacotar o .ipk
+        run: npm run package
+
+      - name: Conferir o .ipk gerado
+        run: |
+          IPK="dist/org.community.webos.adblocker_${VERSION}_all.ipk"
+          if [ ! -f "$IPK" ]; then
+            echo "::error::Pacote esperado não encontrado: $IPK"
+            ls -la dist
+            exit 1
+          fi
+          ls -l "$IPK"
+
+      - name: Gerar o repositório do Homebrew Channel
+        run: >
+          node scripts/build-repo.js
+          --ipk "dist/org.community.webos.adblocker_${VERSION}_all.ipk"
+          --version "$VERSION"
+          --out site
+
+      - name: Criar a Release no GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AdBlocker v${{ env.VERSION }}
+          files: dist/*.ipk
+          generate_release_notes: true
+
+      - name: Publicar o repositório no GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          force_orphan: true
+          commit_message: "chore(release): publica repositório v${{ env.VERSION }}"
