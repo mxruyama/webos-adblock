@@ -160,7 +160,7 @@ Só quem mantém o repositório publica versões. O versionamento é [SemVer](ht
    `npm test`, `scripts/set-version.js` com a versão da tag, `npm run package`, conferência do
    `dist/org.community.webos.adblocker_<versao>_all.ipk`, `scripts/build-repo.js`, criação da Release (com o
    `.ipk` e notas geradas) e publicação do repositório do Homebrew Channel na branch `gh-pages`.
-4. Depois que o workflow terminar, confira: a Release tem o `.ipk`; <https://mxruyama.github.io/webos-adblock/repo.json>
+4. Depois que o workflow terminar, confira: a Release tem o `.ipk`; <https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/repo.json>
    mostra a versão nova; o `sha256` do manifesto confere com o do `.ipk` baixado.
 5. Na primeira vez, ative o GitHub Pages (**Settings → Pages**, *Deploy from a branch*, branch `gh-pages`,
    pasta `/ (root)`).

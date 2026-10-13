@@ -69,3 +69,13 @@ jobs:
           publish_dir: ./site
           force_orphan: true
           commit_message: "chore(release): publica repositório v${{ env.VERSION }}"
+
+      # A TV lê repo.json/manifesto/ícone pelo jsDelivr (@gh-pages fica em cache por horas):
+      # limpa o cache para a versão nova aparecer na hora. Falha aqui não derruba a release.
+      - name: Limpar cache do jsDelivr
+        continue-on-error: true
+        run: |
+          for f in repo.json org.community.webos.adblocker.manifest.json icon.png lists/lite.txt; do
+            curl -fsS --retry 3 "https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@gh-pages/${f}" || echo "::warning::purge falhou para ${f}"
+            echo
+          done

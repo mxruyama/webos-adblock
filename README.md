@@ -41,12 +41,18 @@ Pré-requisito: TV com root e Homebrew Channel instalado e funcionando.
 4. No diálogo **Enter repository URL:**, digite
 
    ```
-   https://mxruyama.github.io/webos-adblock/repo.json
+   https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/repo.json
    ```
 
    e confirme no botão **Add repository**. (A página <https://mxruyama.github.io/webos-adblock/> mostra a
    mesma URL.)
-5. Volte para a lista de aplicativos do Homebrew Channel: o **AdBlocker** aparece ali. Abra-o e instale.
+
+   > **Por que jsDelivr?** TVs LG mais antigas não confiam no certificado Let's Encrypt (ISRG Root X1)
+   > do GitHub Pages; o repositório não carrega e o app não aparece na lista. O jsDelivr serve os mesmos
+   > arquivos da branch `gh-pages` com um certificado aceito por essas TVs. Em TVs novas, a URL
+   > `https://mxruyama.github.io/webos-adblock/repo.json` também funciona.
+5. Volte para a lista de aplicativos do Homebrew Channel e toque no botão de **recarregar** (seta circular no
+   topo) ou feche e reabra o Homebrew Channel: o **AdBlocker** aparece ali. Abra-o e instale.
 6. Abra o **AdBlocker** pelo launcher da TV.
 7. Se aparecer o aviso de root, selecione **Conceder root** e aguarde alguns segundos (veja
    [o que “Conceder root” faz](#o-que-conceder-root-faz)).
@@ -273,7 +279,7 @@ Na primeira publicação, ative o GitHub Pages em **Settings → Pages → Build
 **Source: Deploy from a branch**, branch **`gh-pages`** e pasta **`/ (root)`**. Depois confira:
 
 - a Release tem o `.ipk` anexado;
-- <https://mxruyama.github.io/webos-adblock/repo.json> responde com a versão nova;
+- <https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/repo.json> e <https://mxruyama.github.io/webos-adblock/repo.json> respondem com a versão nova (o workflow limpa o cache do jsDelivr);
 - o `sha256` do manifesto confere com o do `.ipk` baixado da Release.
 
 O número da versão vem sempre da tag; não é preciso editá-lo à mão. Mais detalhes em
@@ -302,7 +308,7 @@ Não há como automatizar a execução em uma TV real. Antes de divulgar uma ver
 
 | Sintoma | O que fazer |
 |---|---|
-| O AdBlocker não aparece no Homebrew Channel | Confirme a URL (`https://mxruyama.github.io/webos-adblock/repo.json`), a internet da TV e se o GitHub Pages da branch `gh-pages` está ativo. |
+| O AdBlocker não aparece no Homebrew Channel | Use a URL do jsDelivr (`https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/repo.json`) — TVs antigas recusam o certificado do GitHub Pages e mostram “An error occured while downloading some repositories”. Em **Settings → Repositories**, remova a URL antiga (`github.io`), adicione a do jsDelivr e recarregue a lista (seta circular no topo) ou reabra o Homebrew Channel. Confira também a internet da TV. |
 | “TV sem root / Homebrew Channel ausente” | A TV precisa de root e do Homebrew Channel (veja [rootmy.tv](https://rootmy.tv/)). |
 | “Serviço sem root. Use 'Conceder root'.” | Selecione **Conceder root**, aguarde cerca de 2 segundos e tente de novo. Se persistir, reabra o app. |
 | Status **Inativo** depois de reiniciar a TV | Confira se `/var/lib/webosbrew/startup.sh` existe. Sem ele não há persistência (o app avisa). Se o arquivo voltou, abra o app: o status reinsere o bloco sozinho. |

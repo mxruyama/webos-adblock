@@ -26,7 +26,7 @@ function json(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-function renderIndex({ repoJsonUrl, version }) {
+function renderIndex({ repoJsonUrl, pagesRepoJsonUrl, version }) {
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -49,6 +49,7 @@ function renderIndex({ repoJsonUrl, version }) {
 <p>${DESCRIPTION}</p>
 <p>URL do repositório do Homebrew Channel:</p>
 <code class="repo">${repoJsonUrl}</code>
+<p><small>Alternativa (TVs mais novas): <code>${pagesRepoJsonUrl}</code>. A URL do jsDelivr funciona também em TVs antigas, que não confiam no certificado do GitHub Pages.</small></p>
 <h2>Como instalar</h2>
 <ol>
 <li>Abra o Homebrew Channel na TV.</li>
@@ -65,7 +66,7 @@ function renderIndex({ repoJsonUrl, version }) {
 }
 
 // Gera em `outDir` o repositorio do Homebrew Channel (repo.json + manifesto), os assets
-// publicados no GitHub Pages e a pagina de instrucoes.
+// publicados no GitHub Pages (servidos tambem pelo jsDelivr) e a pagina de instrucoes.
 function buildRepo({
   ipkPath,
   version,
@@ -90,9 +91,13 @@ function buildRepo({
 
   const [owner, name] = repo.split('/');
   const pagesBase = `https://${owner.toLowerCase()}.github.io/${name}/`;
+  // A TV le repo.json, manifesto e icone pelo jsDelivr (mesmos arquivos da branch gh-pages):
+  // a cadeia do certificado dele termina numa raiz antiga (AAA Certificate Services), aceita
+  // por TVs que nao confiam na ISRG Root X1 (Let's Encrypt) usada pelo GitHub Pages.
+  const cdnBase = `https://cdn.jsdelivr.net/gh/${owner}/${name}@gh-pages/`;
   const ipkName = `${APP_ID}_${version}_all.ipk`;
   const manifestName = `${APP_ID}.manifest.json`;
-  const iconUri = `${pagesBase}icon.png`;
+  const iconUri = `${cdnBase}icon.png`;
 
   const manifest = {
     id: APP_ID,
@@ -115,7 +120,7 @@ function buildRepo({
         id: APP_ID,
         title: APP_TITLE,
         iconUri,
-        manifestUrl: `${pagesBase}${manifestName}`,
+        manifestUrl: `${cdnBase}${manifestName}`,
         shortDescription: DESCRIPTION,
         manifest,
       },
@@ -129,7 +134,11 @@ function buildRepo({
   fs.writeFileSync(path.join(outDir, 'lists', 'lite.txt'), lite);
   fs.writeFileSync(
     path.join(outDir, 'index.html'),
-    renderIndex({ repoJsonUrl: `${pagesBase}repo.json`, version }),
+    renderIndex({
+      repoJsonUrl: `${cdnBase}repo.json`,
+      pagesRepoJsonUrl: `${pagesBase}repo.json`,
+      version,
+    }),
   );
   fs.writeFileSync(path.join(outDir, '.nojekyll'), '');
 

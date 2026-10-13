@@ -1,6 +1,6 @@
 {
   "name": "org.community.webos.adblocker.service",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Servico root do AdBlocker para webOS",
   "main": "service.js"
 }

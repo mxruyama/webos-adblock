@@ -9,7 +9,8 @@ via bind-mount de `/etc/hosts`, distribuído por um repositório compatível com
 hospedado no GitHub Pages e publicado automaticamente pelo GitHub Actions a cada tag `v*`.
 
 Critérios de sucesso:
-- Usuário adiciona `https://mxruyama.github.io/webos-adblock/repo.json` no Homebrew Channel e instala com 1 clique.
+- Usuário adiciona `https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/repo.json` no Homebrew Channel e instala com 1 clique
+  (jsDelivr serve a branch `gh-pages` com cadeia de certificado aceita por TVs antigas; o GitHub Pages usa ISRG Root X1, recusada por elas).
 - App concede root ao próprio serviço, ativa/desativa/atualiza o bloqueio, e o bloqueio persiste após reboot.
 - Desativar restaura `/etc/hosts` original sem quebrar o sistema (inclusive o bloqueio de updates do HBChannel).
 - Roda em webOS 3.x+ (Chrome 38 / Node 0.12): todo JS do app e do serviço é ES5.
@@ -167,7 +168,7 @@ fi
 ### scripts/build-repo.js
 `node scripts/build-repo.js --ipk <path> --version <x.y.z> --out <dir>` gera em `<dir>`:
 - `repo.json`: `{paging:{page:1,count:1,maxPage:1,itemsTotal:1,prevUrl:null,nextUrl:null}, packages:[{id,title,
-  iconUri:"https://mxruyama.github.io/webos-adblock/icon.png", manifestUrl:"https://mxruyama.github.io/webos-adblock/org.community.webos.adblocker.manifest.json",
+  iconUri:"https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/icon.png", manifestUrl:"https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/org.community.webos.adblocker.manifest.json",
   shortDescription, manifest:{...igual ao manifesto}}]}`
 - `org.community.webos.adblocker.manifest.json`: `{id, version, type:"web", title:"AdBlocker", appDescription,
   iconUri, sourceUrl:"https://github.com/mxruyama/webos-adblock", rootRequired:true,

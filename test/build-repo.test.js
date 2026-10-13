@@ -16,6 +16,8 @@ const IPK_BYTES = Buffer.from('conteudo-falso-do-ipk\x00\x01\x02\xff', 'latin1')
 
 const DEFAULT_REPO = 'mxruyama/webos-adblock';
 const PAGES_BASE = 'https://mxruyama.github.io/webos-adblock/';
+// Arquivos lidos pela TV saem pelo jsDelivr (cadeia de certificado aceita por TVs antigas).
+const CDN_BASE = 'https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/';
 const MANIFEST_NAME = 'org.community.webos.adblocker.manifest.json';
 
 function tempDir(prefix) {
@@ -86,8 +88,8 @@ test('repo.json matches HBChannel schema', () => {
   );
   assert.equal(pkg.id, 'org.community.webos.adblocker');
   assert.equal(pkg.title, 'AdBlocker');
-  assert.equal(pkg.iconUri, `${PAGES_BASE}icon.png`);
-  assert.equal(pkg.manifestUrl, `${PAGES_BASE}${MANIFEST_NAME}`);
+  assert.equal(pkg.iconUri, `${CDN_BASE}icon.png`);
+  assert.equal(pkg.manifestUrl, `${CDN_BASE}${MANIFEST_NAME}`);
   assert.equal(
     pkg.shortDescription,
     'Bloqueia anúncios, telemetria da LG e rastreadores em toda a TV via /etc/hosts (requer root).',
@@ -108,7 +110,7 @@ test('manifest has sha256 and size', () => {
   assert.equal(manifest.type, 'web');
   assert.equal(manifest.title, 'AdBlocker');
   assert.equal(manifest.rootRequired, true);
-  assert.equal(manifest.iconUri, `${PAGES_BASE}icon.png`);
+  assert.equal(manifest.iconUri, `${CDN_BASE}icon.png`);
   assert.equal(manifest.sourceUrl, `https://github.com/${DEFAULT_REPO}`);
   assert.equal(
     manifest.appDescription,
@@ -136,13 +138,14 @@ test('owner from GITHUB_REPOSITORY', () => {
     manifest.ipkUrl,
     'https://github.com/SomeOwner/other-repo/releases/download/v1.2.3/org.community.webos.adblocker_1.2.3_all.ipk',
   );
-  // O host do Pages usa o owner em minusculas.
-  assert.equal(manifest.iconUri, 'https://someowner.github.io/other-repo/icon.png');
+  assert.equal(manifest.iconUri, 'https://cdn.jsdelivr.net/gh/SomeOwner/other-repo@gh-pages/icon.png');
   assert.equal(
     repo.packages[0].manifestUrl,
-    `https://someowner.github.io/other-repo/${MANIFEST_NAME}`,
+    `https://cdn.jsdelivr.net/gh/SomeOwner/other-repo@gh-pages/${MANIFEST_NAME}`,
   );
   const html = fs.readFileSync(path.join(outDir, 'index.html'), 'utf8');
+  assert.ok(html.includes('https://cdn.jsdelivr.net/gh/SomeOwner/other-repo@gh-pages/repo.json'));
+  // O host do Pages (alternativa) usa o owner em minusculas.
   assert.ok(html.includes('https://someowner.github.io/other-repo/repo.json'));
 });
 
@@ -151,7 +154,7 @@ test('explicit repo option wins over GITHUB_REPOSITORY', () => {
   const manifest = readJson(path.join(outDir, MANIFEST_NAME));
 
   assert.equal(manifest.sourceUrl, 'https://github.com/acme/tools');
-  assert.equal(manifest.iconUri, 'https://acme.github.io/tools/icon.png');
+  assert.equal(manifest.iconUri, 'https://cdn.jsdelivr.net/gh/acme/tools@gh-pages/icon.png');
 });
 
 test('writes site files with icon, lite list, index and nojekyll', () => {
@@ -164,6 +167,7 @@ test('writes site files with icon, lite list, index and nojekyll', () => {
   const html = fs.readFileSync(path.join(outDir, 'index.html'), 'utf8');
   assert.match(html, /^<!doctype html>/i);
   assert.match(html, /<html lang="pt-BR">/);
+  assert.ok(html.includes(`${CDN_BASE}repo.json`));
   assert.ok(html.includes(`${PAGES_BASE}repo.json`));
   assert.ok(html.includes('1.2.3'));
   // Rotulos reais da interface (em ingles) do Homebrew Channel.
