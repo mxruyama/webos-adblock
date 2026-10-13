@@ -186,3 +186,29 @@
 - [ ] Step 3: `node scripts/build-repo.js --ipk dist/... --version 1.0.0 --out site` e conferência do JSON.
 - [ ] Step 4: revisão final do branch inteiro; commit; `git push -u origin main`; `git tag v1.0.0 && git push origin v1.0.0`.
 - [ ] Step 5: acompanhar Actions pela API pública; conferir Release com `.ipk`, `https://mxruyama.github.io/webos-adblock/repo.json` e sha256 do manifesto = sha256 do asset baixado. Se Pages não estiver ativo, ativar via API (`POST /repos/mxruyama/webos-adblock/pages` com `source.branch=gh-pages`) usando a credencial do Git Credential Manager.
+
+### Task 10: Integração real em Linux (root, mount real, Node 0.12 e 22)
+
+Adicionada durante a execução: não há Linux local; o runner `ubuntu-latest` do GitHub Actions dá root real, `mount --bind` real, resolvedor glibc e permite rodar o Node 0.12.18 (runtime do webOS 3).
+
+**Files:**
+- Create: `service/lib/runtime.js`, `test/integration/linux-root.js`
+- Modify: `service/service.js` (passa a usar `runtime.js`), `.github/workflows/ci.yml` (job `integration`)
+
+**Interfaces:**
+- Consumes: `createBlocker`, `createDownloader`, `splitPemBundle`, `BEGIN` de `startup.js`.
+- Produces: `service/lib/runtime.js` (ES5) exporta `LITE_URL`, `FULL_URL`, `DEFAULT_PATHS` e `createRuntimeBlocker(overrides?: {paths?, liteUrl?, fullUrl?, execFile?}) → blocker`, com as mesmas dependências reais que hoje estão em `service.js` (exec com timeout 30000 e erro do stderr, `isRoot`, downloader com `ca` = `splitPemBundle(certs/cacert.pem)`, timeout 60000). `service.js` fica só com a camada Luna.
+
+- [ ] Step 1: extrair `runtime.js`; `service.js` usa `createRuntimeBlocker()`; `npm test` continua verde (incluindo `test/service.test.js`).
+- [ ] Step 2: `test/integration/linux-root.js` (ES5, roda em Node 0.12 e 22; não casa com o glob `*.test.js`; sai com código ≠ 0 na primeira falha, imprimindo cada passo `ok - …`). Recusa rodar se não for Linux+root. Usa os caminhos reais (`/etc/hosts`, `/var/lib/webosbrew/*`). Passos e asserções:
+  1. Prepara `/var/lib/webosbrew/startup.sh` mínimo (`#!/bin/sh` + `echo boot`), modo 0755; guarda cópias para comparação.
+  2. Simula o bloqueio de updates do HBChannel: `/tmp/hosts` = `/etc/hosts` + `127.0.0.1 snu.lge.com`; `mount --bind /tmp/hosts /etc/hosts`.
+  3. `status` → `active:false`, `root:true`.
+  4. `enable {list:'lite'}` (liteUrl apontando para URL inexistente → cai na lista embutida) → `active`, `persistent`, `count >= 200`; `/etc/hosts` contém `snu.lge.com`, `localhost` e `0.0.0.0 ad.lgappstv.com`; `getent hosts ad.lgappstv.com` retorna `0.0.0.0`.
+  5. Download https puro (downloader com `execFile` que sempre falha, forçando o caminho `https` + CA em array) de `FULL_URL` → texto > 1 MB.
+  6. `enable {list:'full'}` → `count > 50000`; `getent hosts ad.doubleclick.net` → `0.0.0.0`.
+  7. `update {list:'lite'}` → `count < 1000`, ainda ativo.
+  8. Reboot simulado: `umount /etc/hosts` (uma camada) → `sh /var/lib/webosbrew/startup.sh` → `status.active === true`.
+  9. `disable` → `active:false`; `/etc/hosts` = conteúdo de `/tmp/hosts` (camada HBChannel intacta, sem `# >>> webos-adblock`); `startup.sh` byte a byte igual ao original; `hosts.block` removido.
+  10. Limpeza: `umount /etc/hosts` (camada HBChannel).
+- [ ] Step 3: job `integration` no `ci.yml` (ubuntu-latest, matriz `node: ['0.12.18', '22']`): Node 22 via `actions/setup-node@v4`; Node 0.12.18 baixado de `https://nodejs.org/dist/v0.12.18/node-v0.12.18-linux-x64.tar.gz` e posto no PATH; executa `sudo env "PATH=$PATH" node test/integration/linux-root.js`.

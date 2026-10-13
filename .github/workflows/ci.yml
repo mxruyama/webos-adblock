@@ -38,3 +38,39 @@ jobs:
           name: ipk
           path: dist/*.ipk
           if-no-files-found: error
+
+  # Integracao real: root, mount --bind sobre /etc/hosts, getent (glibc) e startup.sh,
+  # no Node 0.12.18 (runtime do webOS 3) e no 22. So codigo do servico + modulos nativos: sem npm ci.
+  integration:
+    name: Integração Linux (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['0.12.18', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Node 0.12.18
+        if: matrix.node == '0.12.18'
+        run: |
+          curl -fsSL https://nodejs.org/dist/v0.12.18/node-v0.12.18-linux-x64.tar.gz | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/node-v0.12.18-linux-x64/bin" >> "$GITHUB_PATH"
+
+      - name: Instalar Node 22
+        if: matrix.node == '22'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Conferir a versão do Node
+        run: |
+          node --version
+          case "$(node --version)" in
+            "v${{ matrix.node }}"*) ;;
+            *) echo "Node errado no PATH (esperado v${{ matrix.node }})"; exit 1 ;;
+          esac
+
+      - name: Teste de integração (root, mount --bind real)
+        run: sudo env "PATH=$PATH" node test/integration/linux-root.js

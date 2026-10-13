@@ -48,6 +48,7 @@ test('app and service code is ES5', () => {
   const files = [
     ...listJsFiles(path.join(ROOT, 'app', 'js')),
     ...listJsFiles(path.join(ROOT, 'service')),
+    ...listJsFiles(path.join(ROOT, 'test', 'integration')),
   ];
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
