@@ -1,0 +1,34 @@
+{
+  "paging": {
+    "page": 1,
+    "count": 1,
+    "maxPage": 1,
+    "itemsTotal": 1,
+    "prevUrl": null,
+    "nextUrl": null
+  },
+  "packages": [
+    {
+      "id": "org.community.webos.adblocker",
+      "title": "AdBlocker",
+      "iconUri": "https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/icon.png",
+      "manifestUrl": "https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/org.community.webos.adblocker.manifest.json",
+      "shortDescription": "Bloqueia anúncios, telemetria da LG e rastreadores em toda a TV via /etc/hosts (requer root).",
+      "manifest": {
+        "id": "org.community.webos.adblocker",
+        "version": "1.1.1",
+        "type": "web",
+        "title": "AdBlocker",
+        "appDescription": "Bloqueia anúncios, telemetria da LG e rastreadores em toda a TV via /etc/hosts (requer root).",
+        "iconUri": "https://cdn.jsdelivr.net/gh/mxruyama/webos-adblock@gh-pages/icon.png",
+        "sourceUrl": "https://github.com/mxruyama/webos-adblock",
+        "rootRequired": true,
+        "ipkUrl": "https://github.com/mxruyama/webos-adblock/releases/download/v1.1.1/org.community.webos.adblocker_1.1.1_all.ipk",
+        "ipkHash": {
+          "sha256": "4808a9c68ee6406d2900d2d67511106d9d37ec2a7851a076ad2aad07c5acc0fe"
+        },
+        "ipkSize": 140768
+      }
+    }
+  ]
+}
