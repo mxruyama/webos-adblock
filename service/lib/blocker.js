@@ -19,6 +19,13 @@ function prefixed(prefix, err) {
   return new Error(prefix + ': ' + (err && err.message ? err.message : String(err)));
 }
 
+// Motivo da falha sem o prefixo "Falha ao baixar <url>: " que o download.js ja coloca.
+function downloadReason(err, url) {
+  var message = err && err.message ? err.message : String(err);
+  var prefix = 'Falha ao baixar ' + url + ': ';
+  return message.indexOf(prefix) === 0 ? message.substring(prefix.length) : message;
+}
+
 function createBlocker(deps) {
   var fs = deps.fs;
   var paths = deps.paths;
@@ -154,7 +161,7 @@ function createBlocker(deps) {
       }
       deps.download(deps.fullUrl, guard(done, function (fullErr, text) {
         if (fullErr) {
-          cb(prefixed('Falha ao baixar a lista completa', fullErr));
+          cb(new Error('Falha ao baixar a lista completa: ' + downloadReason(fullErr, deps.fullUrl)));
           return;
         }
         cb(null, lite.concat(hostsLib.parseDomains(text)));
@@ -221,9 +228,13 @@ function createBlocker(deps) {
         cb(null);
         return;
       }
-      // Rollback: uma nova tentativa de montar.
-      mounts.mount(function () {
-        cb(prefixed('Falha ao montar ' + paths.hosts, err));
+      // Uma nova tentativa; se montar, a operacao segue normalmente.
+      mounts.mount(function (retryErr) {
+        if (!retryErr) {
+          cb(null);
+          return;
+        }
+        cb(prefixed('Falha ao montar ' + paths.hosts, retryErr));
       });
     }));
   }

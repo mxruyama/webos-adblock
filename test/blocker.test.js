@@ -65,10 +65,18 @@ function setup(options = {}) {
     });
   };
 
+  // exec com gancho opcional: afterExec(cmd, sys) roda depois do efeito e antes do callback.
+  const exec = (cmd, args, cb) => {
+    sys.exec(cmd, args, (err, out) => {
+      if (options.afterExec) options.afterExec(cmd, sys);
+      cb(err, out);
+    });
+  };
+
   const env = { root: options.root !== false, isRootError: null };
   const blocker = createBlocker({
     fs,
-    exec: sys.exec,
+    exec,
     download,
     isRoot() {
       if (env.isRootError) throw env.isRootError;
@@ -234,7 +242,7 @@ test('enable full fails when remote download fails', async () => {
   const { err, resp } = await run(blocker.enable, { list: 'full' });
 
   assert.ok(err instanceof Error);
-  assert.equal(err.message, 'Falha ao baixar a lista completa: Falha ao baixar ' + FULL_URL + ': HTTP 404');
+  assert.equal(err.message, 'Falha ao baixar a lista completa: HTTP 404');
   assert.deepEqual(resp, INACTIVE);
   assert.equal(sys.calls.length, 0);
   assert.equal(sys.read(HOSTS), ORIGINAL_HOSTS);
@@ -412,7 +420,8 @@ test('update failure keeps previous list mounted', async () => {
 
   const { err, resp } = await run(blocker.update, { list: 'full' });
 
-  assert.match(err.message, /^Falha ao baixar a lista completa: /);
+  assert.match(err.message, /^Falha ao baixar a lista completa: (?!Falha ao baixar)/);
+  assert.equal(err.message, 'Falha ao baixar a lista completa: HTTP 404');
   assert.deepEqual(resp, { active: true, persistent: true, root: true, list: 'lite', count: 3, updatedAt: NOW_ISO });
   assert.equal(sys.calls.length, callsBefore, 'nada desmontado');
   assert.equal(isOurMount(sys), true);
@@ -450,6 +459,26 @@ test('mount failure retries once and reports the error', async () => {
   assert.equal(sys.read(HOSTS), ORIGINAL_HOSTS);
   assert.equal(sys.fs.existsSync(STATE), false);
   assert.equal(sys.read(STARTUP), STARTUP_SH);
+});
+
+test('mount retry that succeeds completes the operation', async () => {
+  // O primeiro mount falha; o fake volta a montar normalmente a partir do segundo.
+  const { sys, blocker } = setup({
+    afterExec(cmd, s) {
+      const i = s.failCommands.indexOf('mount');
+      if (cmd === 'mount' && i !== -1) s.failCommands.splice(i, 1);
+    },
+  });
+  sys.failCommands.push('mount');
+
+  const { err, resp } = await run(blocker.enable, { list: 'lite' });
+
+  assert.equal(err, null);
+  assert.deepEqual(resp, { active: true, persistent: true, root: true, list: 'lite', count: 3, updatedAt: NOW_ISO });
+  assert.equal(cmds(sys).filter((c) => c.startsWith('mount')).length, 2);
+  assert.equal(isOurMount(sys), true);
+  assert.deepEqual(readState(sys), { enabled: true, list: 'lite', count: 3, updatedAt: NOW_ISO });
+  assert.equal(startup.hasBlock(sys.read(STARTUP)), true);
 });
 
 test('writes require root', async () => {
