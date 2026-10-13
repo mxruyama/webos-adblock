@@ -1,0 +1,10 @@
+{
+  "id": "org.community.webos.adblocker.service",
+  "description": "Servico do AdBlocker",
+  "services": [
+    {
+      "name": "org.community.webos.adblocker.service",
+      "description": "Bloqueio de anuncios via /etc/hosts"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "org.community.webos.adblocker",
+  "version": "1.0.0",
+  "vendor": "webos-adblock",
+  "type": "web",
+  "main": "index.html",
+  "title": "AdBlocker",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "splashBackground": "splash.png",
+  "bgColor": "#101418",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true
+}
