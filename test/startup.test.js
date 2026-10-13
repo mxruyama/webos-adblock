@@ -217,3 +217,34 @@ test('dropBlock is tolerant', () => {
   assert.equal(clean.read(STARTUP), ORIGINAL);
   assert.equal(clean.fs.statSync(STARTUP).ino, inoBefore);
 });
+
+// Bytes que nao sao UTF-8 valido (ex.: Latin-1 "ç" e "ã" num comentario) precisam sobreviver byte a byte.
+const LATIN1_ORIGINAL = Buffer.concat([
+  Buffer.from('#!/bin/sh\n# '),
+  Buffer.from([0xe7, 0xe3]),
+  Buffer.from('\necho ok\n'),
+]);
+
+test('ensureBlock preserves non-UTF-8 bytes', () => {
+  const sys = makeSys(LATIN1_ORIGINAL, 0o755);
+  assert.deepEqual(ensureBlock(sys.fs, STARTUP), { persistent: true });
+
+  const written = sys.fs.readFileSync(STARTUP);
+  assert.deepEqual(written, Buffer.concat([LATIN1_ORIGINAL, Buffer.from(BLOCK)]));
+  assert.equal(written.indexOf(Buffer.from([0xef, 0xbf, 0xbd])), -1);
+});
+
+test('dropBlock preserves non-UTF-8 bytes', () => {
+  const sys = makeSys(Buffer.concat([LATIN1_ORIGINAL, Buffer.from(BLOCK)]), 0o755);
+  dropBlock(sys.fs, STARTUP);
+  assert.deepEqual(sys.fs.readFileSync(STARTUP), LATIN1_ORIGINAL);
+});
+
+test('ensureBlock and dropBlock preserve valid UTF-8 bytes', () => {
+  const original = Buffer.from('#!/bin/sh\n# configuração ã ç\n', 'utf8');
+  const sys = makeSys(original, 0o755);
+  ensureBlock(sys.fs, STARTUP);
+  assert.deepEqual(sys.fs.readFileSync(STARTUP), Buffer.concat([original, Buffer.from(BLOCK)]));
+  dropBlock(sys.fs, STARTUP);
+  assert.deepEqual(sys.fs.readFileSync(STARTUP), original);
+});

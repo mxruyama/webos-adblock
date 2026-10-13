@@ -63,12 +63,14 @@ function addBlock(text) {
   return base + BLOCK;
 }
 
+// IO em 'binary' (1 byte = 1 caractere): devolve byte a byte qualquer conteudo, mesmo que nao seja UTF-8
+// (com 'utf8', bytes invalidos virariam U+FFFD). Os marcadores e o BLOCK sao ASCII, entao indexOf/slice funcionam igual.
 // Grava em path + '.tmp', copia o modo original e troca por rename (nunca deixa o arquivo pela metade).
 function writeAtomic(fs, path, text) {
   var tmp = path + '.tmp';
   var mode = (fs.statSync(path).mode & MODE_MASK) || DEFAULT_MODE;
   try {
-    fs.writeFileSync(tmp, text, 'utf8');
+    fs.writeFileSync(tmp, text, 'binary');
     fs.chmodSync(tmp, mode);
     fs.renameSync(tmp, path);
   } catch (err) {
@@ -83,7 +85,7 @@ function writeAtomic(fs, path, text) {
 
 function ensureBlock(fs, path) {
   if (!fs.existsSync(path)) return { persistent: false, warning: MISSING_WARNING };
-  var current = fs.readFileSync(path, 'utf8');
+  var current = fs.readFileSync(path, 'binary');
   var next = addBlock(current);
   if (next !== current) writeAtomic(fs, path, next);
   return { persistent: true };
@@ -91,7 +93,7 @@ function ensureBlock(fs, path) {
 
 function dropBlock(fs, path) {
   if (!fs.existsSync(path)) return;
-  var current = fs.readFileSync(path, 'utf8');
+  var current = fs.readFileSync(path, 'binary');
   var next = removeBlock(current);
   if (next !== current) writeAtomic(fs, path, next);
 }
