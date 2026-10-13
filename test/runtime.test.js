@@ -33,6 +33,19 @@ test('loadCa returns the embedded bundle as one PEM certificate per item', () =>
   }
 });
 
+test('loadCa returns undefined when the bundle has no certificates', () => {
+  // Array vazio em tls removeria todas as CAs raiz: sem certificado, devolve undefined (CAs do Node).
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'webos-adblock-ca-'));
+  try {
+    const empty = path.join(dir, 'cacert.pem');
+    fs.writeFileSync(empty, '# bundle truncado\n');
+    assert.equal(runtime.loadCa(empty), undefined);
+    assert.equal(runtime.loadCa(path.join(dir, 'nao-existe.pem')), undefined);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('createRuntimeBlocker merges path overrides over the defaults', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'webos-adblock-runtime-'));
   try {

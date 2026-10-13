@@ -9,6 +9,7 @@
   var HBCHANNEL = 'luna://org.webosbrew.hbchannel.service/';
   var SERVICE_ID = 'org.community.webos.adblocker.service';
   var RESTATUS_DELAY_MS = 2000;
+  var RESTART_TIMEOUT_MS = 4000;
 
   var doc = global.document;
   var Luna = global.Luna;
@@ -200,20 +201,29 @@
           finishRootFlow('Falha ao conceder root: ' + elevErr.message, 'error');
           return;
         }
-        // O servico responde e encerra; o erro (se vier) e esperado e ignorado.
-        Luna.call(SERVICE + 'restart', {}, function () {
+        // O servico responde e encerra; o erro (se vier) e esperado e ignorado. Sem resposta em 4 s,
+        // segue assim mesmo (o processo pode morrer antes de responder).
+        var continued = false;
+        var restartTimer = global.setTimeout(afterRestart, RESTART_TIMEOUT_MS);
+        function afterRestart() {
+          if (continued) return;
+          continued = true;
+          global.clearTimeout(restartTimer);
           global.setTimeout(function () {
             refreshStatus(function (statusErr) {
               if (statusErr) {
                 finishRootFlow(statusErr.message, 'error');
               } else if (status && status.root === true) {
                 finishRootFlow('Root concedido ao serviço', 'success');
+                // O "Conceder root" sumiu: foco no primeiro botao principal habilitado (Ativar Bloqueio).
+                focusInitial();
               } else {
                 finishRootFlow('O serviço continua sem root. Reinicie a TV e tente de novo.', 'error');
               }
             });
           }, RESTATUS_DELAY_MS);
-        });
+        }
+        Luna.call(SERVICE + 'restart', {}, afterRestart);
       });
     });
   }

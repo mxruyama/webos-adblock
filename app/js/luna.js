@@ -10,6 +10,9 @@
   var HBCHANNEL = 'luna://org.webosbrew.hbchannel.service/';
   var SERVICE_ID = 'org.community.webos.adblocker.service';
   var MOCK_LATENCY_MS = 300;
+  // Mais que o pior caso do servico (cadeia de downloads com retentativas); restart usa um prazo proprio.
+  var DEFAULT_TIMEOUT_MS = 420000;
+  var TIMEOUT_TEXT = 'Tempo esgotado aguardando o serviço';
 
   function queryHas(name) {
     var search = (global.location && global.location.search) || '';
@@ -42,23 +45,41 @@
     }
   }
 
+  // Entrega a resposta em cb e devolve cancel(), que solta a ponte (resposta tardia e ignorada).
+  // Falha ao criar a ponte ou ao chamar vira resposta de erro.
   function bridgeCall(uri, params, cb) {
-    var bridge = new global.PalmServiceBridge();
+    var bridge = null;
     var answered = false;
-    pendingBridges.push(bridge);
-    bridge.onservicecallback = function (msg) {
-      if (answered) return;
+
+    function cancel() {
       answered = true;
-      releaseBridge(bridge);
-      var resp;
-      try {
-        resp = JSON.parse(msg);
-      } catch (e) {
-        resp = { returnValue: false, errorText: 'Resposta inválida do serviço' };
-      }
-      deliver(cb, resp);
-    };
-    bridge.call(uri, JSON.stringify(params || {}));
+      if (bridge) releaseBridge(bridge);
+    }
+
+    try {
+      bridge = new global.PalmServiceBridge();
+      pendingBridges.push(bridge);
+      bridge.onservicecallback = function (msg) {
+        if (answered) return;
+        cancel();
+        var resp;
+        try {
+          resp = JSON.parse(msg);
+        } catch (e) {
+          resp = { returnValue: false, errorText: 'Resposta inválida do serviço' };
+        }
+        deliver(cb, resp);
+      };
+      bridge.call(uri, JSON.stringify(params || {}));
+    } catch (err) {
+      if (answered) throw err; // excecao do proprio cb numa resposta sincrona: nao e falha da ponte
+      cancel();
+      deliver(cb, {
+        returnValue: false,
+        errorText: 'Falha ao chamar o serviço: ' + (err && err.message ? err.message : String(err))
+      });
+    }
+    return cancel;
   }
 
   // --- Mock em memoria ---
@@ -88,7 +109,8 @@
       count: mock.count,
       updatedAt: mock.updatedAt
     };
-    if (!mock.persistent) resp.warning = NO_PERSIST_WARNING;
+    // Como o servico: o aviso so vem com root e bloqueio ligado.
+    if (!mock.persistent && mock.root && mock.active) resp.warning = NO_PERSIST_WARNING;
     return resp;
   }
 
@@ -121,7 +143,7 @@
     if (!mock.root) return mockError(NO_ROOT_TEXT);
 
     var list = params.list === undefined ? null : params.list;
-    if (list !== null && !MOCK_COUNTS.hasOwnProperty(list)) return mockError('Lista inválida: ' + list);
+    if (list !== null && !MOCK_COUNTS.hasOwnProperty(list)) return mockError('Lista inválida');
 
     if (method === 'enable') {
       mockLoadList(list || 'lite');
@@ -154,17 +176,34 @@
   }
 
   function mockCall(uri, params, cb) {
-    global.setTimeout(function () {
+    var timer = global.setTimeout(function () {
       deliver(cb, mockHandle(uri, params || {}));
     }, MOCK_LATENCY_MS);
+    return function () {
+      global.clearTimeout(timer);
+    };
   }
 
-  function call(uri, params, cb) {
-    if (useMock) {
-      mockCall(uri, params, cb);
-    } else {
-      bridgeCall(uri, params, cb);
+  // Luna.call(uri, params, cb[, timeoutMs]): cb(err, resp) exatamente uma vez. Sem resposta em timeoutMs
+  // (padrao 7 min), entrega o erro de tempo esgotado e ignora a resposta que chegar depois.
+  function call(uri, params, cb, timeoutMs) {
+    var settled = false;
+    var cancel = null;
+    var timer = global.setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      if (cancel) cancel();
+      deliver(cb, { returnValue: false, errorText: TIMEOUT_TEXT });
+    }, typeof timeoutMs === 'number' && timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT_MS);
+
+    function once(err, resp) {
+      if (settled) return;
+      settled = true;
+      global.clearTimeout(timer);
+      cb(err, resp);
     }
+
+    cancel = useMock ? mockCall(uri, params, once) : bridgeCall(uri, params, once);
   }
 
   global.Luna = {

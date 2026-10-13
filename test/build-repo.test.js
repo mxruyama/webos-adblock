@@ -166,6 +166,11 @@ test('writes site files with icon, lite list, index and nojekyll', () => {
   assert.match(html, /<html lang="pt-BR">/);
   assert.ok(html.includes(`${PAGES_BASE}repo.json`));
   assert.ok(html.includes('1.2.3'));
+  // Rotulos reais da interface (em ingles) do Homebrew Channel.
+  for (const label of ['Settings', 'Repositories', 'Add repository', 'Enter repository URL:']) {
+    assert.ok(html.includes(`<strong>${label}</strong>`), label);
+  }
+  assert.ok(!html.includes('Adicionar repositório'), 'sem rotulos inventados');
 });
 
 test('json files are pretty-printed with trailing newline', () => {

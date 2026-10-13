@@ -56,6 +56,9 @@ Pré-requisito: TV com root e Homebrew Channel instalado e funcionando.
 > Opção “Block system updates” do Homebrew Channel: ela **convive** com o AdBlocker. O conteúdo que o Homebrew
 > Channel coloca no `/etc/hosts` (domínios de atualização da LG) é preservado no hosts do AdBlocker, e ao desativar
 > o AdBlocker só a camada dele é removida: o bloqueio de atualizações do Homebrew Channel continua como estava.
+> Ligou ou desligou “Block system updates” com o AdBlocker já ativo? Selecione **Atualizar Listas**: o hosts é
+> regenerado sobre o `/etc/hosts` atual (sem a camada do AdBlocker) e passa a refletir a mudança. Não é preciso
+> desativar o bloqueio antes.
 
 ### O que “Conceder root” faz
 
@@ -134,9 +137,13 @@ umount /etc/hosts
 #    (com sed, ou abrindo o arquivo em um editor)
 sed -i '/# >>> org.community.webos.adblocker >>>/,/# <<< org.community.webos.adblocker <<</d' /var/lib/webosbrew/startup.sh
 
-# 4. Opcional: apague os arquivos de dados do AdBlocker
+# 4. Obrigatório: apague os arquivos de dados do AdBlocker
 rm -f /var/lib/webosbrew/hosts.block /var/lib/webosbrew/adblocker.json
 ```
+
+O passo 4 não é opcional: enquanto o `adblocker.json` disser que o bloqueio está ligado, basta abrir o app (ou
+qualquer consulta de status) para o auto-reparo recolocar o bloco no `startup.sh` e, se o `hosts.block` ainda
+existir, montar o hosts de novo, reativando o bloqueio.
 
 > Se você usa “Block system updates” do Homebrew Channel, o `/etc/hosts` pode ter também a camada dele. Faça
 > `umount /etc/hosts` uma vez por vez e confira com `cat /proc/mounts | grep hosts`: remover a camada do
@@ -176,8 +183,10 @@ service/ ──► fs: /var/lib/webosbrew/{hosts.block, adblocker.json, startup.
   exemplo, porque uma atualização do Homebrew Channel sobrescreveu o arquivo), o serviço o reinsere; se o hosts
   não está montado mas o `hosts.block` existe, ele monta de novo.
 - **Atualizar com o bloqueio ativo.** O bind-mount aponta para o inode do arquivo, então reescrever no lugar não
-  teria efeito. O serviço grava `hosts.block.tmp`, desmonta a camada própria, renomeia e monta de novo. Se
-  algo falha depois de desmontar, ele tenta restaurar a montagem anterior.
+  teria efeito. O serviço baixa as listas primeiro (falha aqui não muda nada), desmonta a camada própria, monta o
+  hosts novo sobre o `/etc/hosts` que ficou por baixo (assim entram mudanças do Homebrew Channel), grava
+  `hosts.block.tmp`, renomeia e monta de novo. Se algo falha depois de desmontar, ele remonta o `hosts.block`
+  anterior.
 - **Segurança das operações.** Ações de escrita exigem root (`Serviço sem root. Use 'Conceder root'.` caso
   contrário) e são executadas em fila, então cliques repetidos não se atropelam. Desativar é tolerante: não há
   erro se o mount, o bloco ou os arquivos já não existirem, e só a camada montada pelo AdBlocker é desmontada.
@@ -206,7 +215,7 @@ npm run package    # gera dist/org.community.webos.adblocker_<versao>_all.ipk
 ```
 
 Para ver a interface sem uma TV, abra `app/index.html?mock=1` no Chrome (direto do disco ou por qualquer servidor
-estático. O modo `?mock=1` substitui o barramento Luna por um mock em memória
+estático). O modo `?mock=1` substitui o barramento Luna por um mock em memória
 que simula root, estado e latência. Sem `PalmServiceBridge` (fora da TV) o mock é usado automaticamente.
 
 A lógica do serviço fica em `service/lib/` com dependências injetáveis (`fs`, `exec`, `download`, caminhos) e é
@@ -230,8 +239,10 @@ service/                Serviço Node que roda como root (ES5)
   lib/startup.js        bloco do startup.sh
   lib/mounts.js         bind-mount do hosts
   lib/download.js       https -> curl -> wget
+  lib/certs.js          quebra o cacert.pem em um certificado por item (Node 0.12)
   lib/state.js          adblocker.json
   lib/blocker.js        orquestração (enable/disable/update/status)
+  lib/runtime.js        dependências reais e caminhos da TV (usado por service.js)
   lists/lite.txt        lista leve embutida
   certs/cacert.pem      certificados para o download https
 scripts/                Ferramentas de build (Node moderno)
@@ -239,6 +250,8 @@ scripts/                Ferramentas de build (Node moderno)
   set-version.js        grava a versão nos três package/appinfo
   make-icons.js         gera os PNGs
 test/                   Testes (node --test)
+  helpers/fakes.js      sistema de arquivos + mount/umount falsos
+  integration/linux-root.js   integração real (Linux + root), roda no CI
 .github/workflows/      ci.yml e release.yml
 package.json  README.md  CONTRIBUTING.md  LICENSE
 ```
@@ -315,3 +328,14 @@ testes, commits e como propor domínios para a lista Leve).
 ## Licença
 
 [MIT](LICENSE). Projeto da comunidade, não oficial e sem vínculo com a LG Electronics.
+
+### Créditos de terceiros
+
+- `service/certs/cacert.pem`: pacote de certificados raiz da Mozilla, na extração publicada pelo projeto curl
+  (<https://curl.se/docs/caextract.html>), distribuído sob a [Mozilla Public License 2.0](https://www.mozilla.org/MPL/2.0/).
+- Lista **Leve**: seleção própria; os nomes de host foram conferidos em
+  [hagezi/dns-blocklists](https://github.com/hagezi/dns-blocklists) (LG webOS Tracker),
+  [Perflyst/PiHoleBlocklist](https://github.com/Perflyst/PiHoleBlocklist) (SmartTV) e
+  [hugobatista/lg-tv-ad-block](https://github.com/hugobatista/lg-tv-ad-block).
+- Lista **Completa**: inclui o [StevenBlack/hosts](https://github.com/StevenBlack/hosts), baixado na TV na hora
+  da ativação/atualização (não é redistribuído por este projeto).

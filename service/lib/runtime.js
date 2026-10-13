@@ -37,12 +37,16 @@ function isRoot() {
 }
 
 // Bundle Mozilla quebrado em certificados; sem ele o https usa as CAs do Node (e cai para curl/wget).
-function loadCa() {
+// Bundle sem nenhum certificado tambem da undefined: `ca: []` removeria todas as CAs raiz.
+// file e opcional (padrao: service/certs/cacert.pem).
+function loadCa(file) {
+  var certs;
   try {
-    return splitPemBundle(fs.readFileSync(path.join(SERVICE_DIR, 'certs', 'cacert.pem'), 'utf8'));
+    certs = splitPemBundle(fs.readFileSync(file || path.join(SERVICE_DIR, 'certs', 'cacert.pem'), 'utf8'));
   } catch (err) {
     return undefined;
   }
+  return certs.length > 0 ? certs : undefined;
 }
 
 function extend(target, source) {

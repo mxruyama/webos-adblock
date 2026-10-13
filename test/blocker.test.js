@@ -447,6 +447,90 @@ test('update rolls back to the previous block when the swap fails', async () => 
   assert.equal(readState(sys).list, 'lite');
 });
 
+test('update picks up lower-layer changes (HBChannel update block)', async () => {
+  const env = setup({ files: { [FOREIGN]: HBCHANNEL_HOSTS } });
+  const { sys, blocker } = env;
+  await rawMount(sys, FOREIGN);
+  await enabled(env);
+  // O usuario liga outra opcao do HBChannel com o AdBlocker ativo: a camada de baixo ganha uma linha.
+  const lower = HBCHANNEL_HOSTS + '127.0.0.1 su-ssl.lge.com\n';
+  sys.fs.writeFileSync(FOREIGN, lower);
+  assert.ok(!sys.read(HOSTS).includes('su-ssl.lge.com'), 'nosso mount esconde a mudanca');
+
+  const { err, resp } = await run(blocker.update, {});
+
+  assert.equal(err, null);
+  assert.equal(resp.active, true);
+  const hosts = sys.read(HOSTS);
+  assert.ok(hosts.startsWith(lower), hosts);
+  assert.ok(hosts.includes('0.0.0.0 ads.lgtv.test\n'));
+  assert.equal(countOf(hosts, '# >>> webos-adblock'), 1);
+  await rawUmount(sys);
+  assert.equal(sys.read(HOSTS), lower, 'so uma camada nossa, sobre a do HBChannel');
+});
+
+test('build failure after unmount remounts the previous block', async () => {
+  const env = setup({ files: { [FOREIGN]: HBCHANNEL_HOSTS } });
+  const { sys, blocker } = env;
+  await rawMount(sys, FOREIGN);
+  await enabled(env, 'lite');
+  const hostsBefore = sys.read(HOSTS);
+  // A camada de baixo passa do limite de 15 MB: buildHostsFile lanca depois do umount.
+  sys.fs.writeFileSync(FOREIGN, HBCHANNEL_HOSTS + '# ' + 'x'.repeat(15 * 1024 * 1024) + '\n');
+
+  const { err, resp } = await run(blocker.update, { list: 'full' });
+
+  assert.equal(err.message, 'Lista de hosts excede 15 MB');
+  assert.equal(resp.active, true);
+  assert.equal(isOurMount(sys), true, 'hosts.block anterior remontado');
+  assert.equal(sys.read(HOSTS), hostsBefore);
+  assert.equal(sys.fs.existsSync(BLOCK + '.tmp'), false);
+  assert.deepEqual(readState(sys), { enabled: true, list: 'lite', count: 3, updatedAt: NOW_ISO });
+  assert.deepEqual(cmds(sys).slice(-2), ['umount ' + HOSTS, 'mount --bind ' + BLOCK + ' ' + HOSTS]);
+});
+
+test('write failure after unmount remounts the previous block', async () => {
+  const env = setup();
+  const { sys, blocker } = env;
+  await enabled(env, 'lite');
+  const hostsBefore = sys.read(HOSTS);
+  env.fail('writeFileSync', BLOCK + '.tmp', 'ENOSPC simulado');
+
+  const { err, resp } = await run(blocker.update, { list: 'full' });
+
+  assert.equal(err.message, 'Falha ao gravar ' + BLOCK + ': ENOSPC simulado');
+  assert.equal(resp.active, true);
+  assert.equal(isOurMount(sys), true, 'hosts.block anterior remontado');
+  assert.equal(sys.read(HOSTS), hostsBefore);
+  assert.equal(sys.fs.existsSync(BLOCK + '.tmp'), false);
+  assert.equal(readState(sys).list, 'lite');
+});
+
+test('enable full fails when the remote list has no valid domains', async () => {
+  const { sys, blocker } = setup({ remote: { [FULL_URL]: '<html>portal cativo</html>\n' } });
+  const { err, resp } = await run(blocker.enable, { list: 'full' });
+
+  assert.equal(err.message, 'Falha ao baixar a lista completa: nenhum domínio válido');
+  assert.deepEqual(resp, INACTIVE);
+  assert.equal(sys.calls.length, 0);
+  assert.equal(sys.read(HOSTS), ORIGINAL_HOSTS);
+  assert.equal(sys.fs.existsSync(BLOCK), false);
+  assert.equal(sys.fs.existsSync(STATE), false);
+  assert.equal(sys.read(STARTUP), STARTUP_SH);
+});
+
+test('disable wraps a hosts.block removal failure in pt-BR', async () => {
+  const env = setup();
+  const { blocker } = env;
+  await enabled(env);
+  env.fail('unlinkSync', BLOCK, 'EIO simulado');
+
+  const { err, resp } = await run(blocker.disable);
+
+  assert.equal(err.message, 'Falha ao apagar ' + BLOCK + ': EIO simulado');
+  assert.equal(resp.active, false);
+});
+
 test('mount failure retries once and reports the error', async () => {
   const { sys, blocker } = setup();
   sys.failCommands.push('mount');

@@ -3,13 +3,15 @@
 // Teste de integracao REAL do servico: Linux + root, mount --bind de verdade sobre /etc/hosts,
 // resolvedor glibc (getent) e o startup.sh executado pelo sh. Roda no CI (job "integration") em
 // Node 0.12.18 (runtime do webOS 3) e 22.
-// ATENCAO: mexe no /etc/hosts e em /var/lib/webosbrew/* da maquina; use so em runner descartavel.
+// ATENCAO: mexe no /etc/hosts e em /var/lib/webosbrew/* da maquina (sobrescreve o startup.sh); use so em
+// runner descartavel. Exige GITHUB_ACTIONS=true (CI) ou ADBLOCK_INTEGRATION=1 (confirmacao explicita).
 //
-// Uso: sudo env "PATH=$PATH" node test/integration/linux-root.js
+// Uso: sudo env "PATH=$PATH" ADBLOCK_INTEGRATION=1 node test/integration/linux-root.js
 //
 // ES5 puro e so modulos nativos + codigo do servico (nada de node_modules). Imprime "ok - <passo>" a cada
 // passo; na primeira falha imprime "not ok - <passo>: <detalhes>", um diagnostico ("# ..."), limpa
-// (disable + umount das camadas extras de /etc/hosts) e sai com 1. Sai com 2 se nao for Linux + root.
+// (disable + umount das camadas extras de /etc/hosts) e sai com 1. Sai com 2 se nao for Linux + root
+// ou se faltar a confirmacao acima.
 
 var fs = require('fs');
 var https = require('https');
@@ -36,7 +38,14 @@ var MAX_CLEANUP_UMOUNTS = 5;
 
 if (process.platform !== 'linux' || typeof process.getuid !== 'function' || process.getuid() !== 0) {
   console.error('Recusado: este teste só roda em Linux como root (faz mount --bind sobre /etc/hosts).');
-  console.error('Uso: sudo env "PATH=$PATH" node test/integration/linux-root.js');
+  console.error('Uso: sudo env "PATH=$PATH" ADBLOCK_INTEGRATION=1 node test/integration/linux-root.js');
+  process.exit(2);
+}
+
+if (process.env.GITHUB_ACTIONS !== 'true' && process.env.ADBLOCK_INTEGRATION !== '1') {
+  console.error('Recusado: este teste sobrescreve /var/lib/webosbrew/startup.sh, apaga /var/lib/webosbrew/hosts.block');
+  console.error('e adblocker.json e monta arquivos sobre /etc/hosts. Rode só em máquina descartável (o CI já roda).');
+  console.error('Para confirmar: sudo env "PATH=$PATH" ADBLOCK_INTEGRATION=1 node test/integration/linux-root.js');
   process.exit(2);
 }
 

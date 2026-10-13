@@ -52,8 +52,9 @@ function renderIndex({ repoJsonUrl, version }) {
 <h2>Como instalar</h2>
 <ol>
 <li>Abra o Homebrew Channel na TV.</li>
-<li>Vá em Configurações e escolha “Adicionar repositório”.</li>
-<li>Digite a URL acima e confirme.</li>
+<li>Abra as configurações: <strong>Settings</strong> (ícone de engrenagem). A interface do Homebrew Channel é em inglês.</li>
+<li>Na seção <strong>Repositories</strong>, escolha <strong>Add repository</strong>.</li>
+<li>No diálogo <strong>Enter repository URL:</strong>, digite a URL acima e confirme no botão <strong>Add repository</strong>.</li>
 <li>Volte à lista de aplicativos, abra o ${APP_TITLE} e instale.</li>
 </ol>
 <p><small>Versão ${version}. Requer TV com acesso root (Homebrew Channel).</small></p>

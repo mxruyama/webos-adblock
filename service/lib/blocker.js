@@ -152,7 +152,7 @@ function createBlocker(deps) {
     });
   }
 
-  // Completa = leve + StevenBlack; falha no download da completa e erro.
+  // Completa = leve + StevenBlack; falha no download da completa (ou nenhum dominio, ex.: portal cativo) e erro.
   function loadDomains(list, done, cb) {
     loadLite(guard(done, function (err, lite) {
       if (err || list === 'lite') {
@@ -164,15 +164,19 @@ function createBlocker(deps) {
           cb(new Error('Falha ao baixar a lista completa: ' + downloadReason(fullErr, deps.fullUrl)));
           return;
         }
-        cb(null, lite.concat(hostsLib.parseDomains(text)));
+        var remote = hostsLib.parseDomains(text);
+        if (remote.length === 0) {
+          cb(new Error('Falha ao baixar a lista completa: nenhum domínio válido'));
+          return;
+        }
+        cb(null, lite.concat(remote));
       }));
     }));
   }
 
-  // Base do hosts: com o nosso mount ativo, o proprio hosts.block (buildHostsFile tira o bloco antigo);
-  // senao, o /etc/hosts atual (inclui o bloqueio de updates do HBChannel, se montado).
+  // Base do hosts: o /etc/hosts sem a nossa camada (quem chama ja desmontou o nosso mount). Assim entra
+  // a camada de baixo atual, inclusive o bloqueio de updates do HBChannel ligado depois do AdBlocker.
   function readBase() {
-    if (mounts.isOurMount()) return fs.readFileSync(paths.block, 'utf8');
     try {
       return fs.readFileSync(paths.hosts, 'utf8');
     } catch (err) {
@@ -190,48 +194,61 @@ function createBlocker(deps) {
 
   // --- Troca do hosts.block montado ---
 
-  // tmp -> (desmonta o nosso) -> rename -> mount. O bind aponta para o inode, por isso o rename.
-  function swapBlock(tmp, done, cb) {
+  // Gera o hosts.block novo sobre a camada de baixo: (desmonta o nosso) -> le a base -> monta o texto ->
+  // grava tmp -> rename -> mount. O bind aponta para o inode, por isso o rename. Qualquer falha depois do
+  // umount remonta o hosts.block anterior (rollback). cb(err, built).
+  function rebuildBlock(domains, meta, done, cb) {
     var wasMounted = mounts.isOurMount();
     if (!wasMounted) {
-      install(tmp, false, done, cb);
+      writeAndInstall(domains, meta, false, done, cb);
       return;
     }
     mounts.unmountOurs(guard(done, function (err) {
       if (err) {
-        removeQuietly(tmp);
         cb(err);
         return;
       }
-      install(tmp, true, done, cb);
+      writeAndInstall(domains, meta, true, done, cb);
     }));
   }
 
-  function install(tmp, wasMounted, done, cb) {
+  // Falha antes do mount novo: com o nosso mount desfeito, remonta o hosts.block anterior.
+  function failAndRestore(failure, wasMounted, cb) {
+    if (!wasMounted) {
+      cb(failure);
+      return;
+    }
+    mounts.mount(function () {
+      cb(failure);
+    });
+  }
+
+  function writeAndInstall(domains, meta, wasMounted, done, cb) {
+    var tmp = paths.block + '.tmp';
+    var built;
     try {
+      built = hostsLib.buildHostsFile(readBase(), domains, meta);
+    } catch (buildErr) {
+      failAndRestore(buildErr, wasMounted, cb);
+      return;
+    }
+    try {
+      fs.writeFileSync(tmp, built.text, 'utf8');
       fs.renameSync(tmp, paths.block);
     } catch (err) {
       removeQuietly(tmp);
-      var failure = prefixed('Falha ao gravar ' + paths.block, err);
-      if (!wasMounted) {
-        cb(failure);
-        return;
-      }
-      // Rollback: o hosts.block anterior continua no lugar; remonta.
-      mounts.mount(function () {
-        cb(failure);
-      });
+      failAndRestore(prefixed('Falha ao gravar ' + paths.block, err), wasMounted, cb);
       return;
     }
     mounts.mount(guard(done, function (err) {
       if (!err) {
-        cb(null);
+        cb(null, built);
         return;
       }
       // Uma nova tentativa; se montar, a operacao segue normalmente.
       mounts.mount(function (retryErr) {
         if (!retryErr) {
-          cb(null);
+          cb(null, built);
           return;
         }
         cb(prefixed('Falha ao montar ' + paths.hosts, retryErr));
@@ -241,7 +258,7 @@ function createBlocker(deps) {
 
   // --- Operacoes ---
 
-  // Monta a lista inteira antes de tocar no disco: falha de download/montagem deixa tudo como estava.
+  // Baixa a lista inteira antes de tocar no disco: falha de download deixa tudo como estava.
   function applyList(list, done) {
     loadDomains(list, done, guard(done, function (err, domains) {
       if (err) {
@@ -249,16 +266,7 @@ function createBlocker(deps) {
         return;
       }
       var updatedAt = deps.now().toISOString();
-      var built = hostsLib.buildHostsFile(readBase(), domains, { list: list, date: updatedAt });
-      var tmp = paths.block + '.tmp';
-      try {
-        fs.writeFileSync(tmp, built.text, 'utf8');
-      } catch (writeErr) {
-        removeQuietly(tmp);
-        done(prefixed('Falha ao gravar ' + paths.block, writeErr));
-        return;
-      }
-      swapBlock(tmp, done, guard(done, function (swapErr) {
+      rebuildBlock(domains, { list: list, date: updatedAt }, done, guard(done, function (swapErr, built) {
         if (swapErr) {
           done(swapErr);
           return;
@@ -330,7 +338,7 @@ function createBlocker(deps) {
       try {
         fs.unlinkSync(paths.block);
       } catch (unlinkErr) {
-        if (unlinkErr.code !== 'ENOENT') throw unlinkErr;
+        if (unlinkErr.code !== 'ENOENT') throw prefixed('Falha ao apagar ' + paths.block, unlinkErr);
       }
       var warnings = [];
       try {

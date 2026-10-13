@@ -14,7 +14,7 @@ var LIST_IPS = ['0.0.0.0', '127.0.0.1', '::1'];
 var BLOCK_IPS = ['0.0.0.0', '127.0.0.1'];
 var DISCARD = ['localhost', 'localhost.localdomain', 'local', 'broadcasthost', '0.0.0.0'];
 
-// Cabecalho do bloco gerado; "í" mantem o fonte em ASCII.
+// Cabecalho do bloco gerado; o fonte e UTF-8 ("domínios" vai literal para o hosts, que e gravado em UTF-8).
 function headerLine(meta, count) {
   return MARKER + ' (gerado em ' + meta.date + ', lista ' + meta.list + ', ' + count + ' domínios)';
 }

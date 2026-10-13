@@ -68,6 +68,15 @@ npm run package                    # valida o empacotamento (gera dist/*.ipk)
 - A saída da suíte deve ficar limpa: sem avisos nem logs soltos.
 - O CI (`.github/workflows/ci.yml`) roda `npm ci`, `npm test` e `npm run package` em cada push para `main` e em
   cada pull request, e publica o `.ipk` como artefato, útil para quem testa na TV.
+- O CI também roda o teste de integração `test/integration/linux-root.js` (Linux + root, `mount --bind` real
+  sobre `/etc/hosts`, no Node 0.12.18 e no 22). Ele **sobrescreve** `/var/lib/webosbrew/startup.sh`, apaga
+  `hosts.block`/`adblocker.json` e monta arquivos sobre `/etc/hosts`, por isso só roda com `GITHUB_ACTIONS=true`
+  (o CI) ou com a confirmação explícita `ADBLOCK_INTEGRATION=1`; sem ela sai com código 2 sem mexer em nada.
+  Para rodar fora do CI, use uma máquina ou VM Linux descartável:
+
+  ```sh
+  sudo env "PATH=$PATH" ADBLOCK_INTEGRATION=1 node test/integration/linux-root.js
+  ```
 - Mudanças de interface: confira em `app/index.html?mock=1` (setas, Enter e os três estados: sem root, inativo e
   ativo). Mudanças de serviço que mexem em mount, `startup.sh` ou lista **precisam** passar também pelo
   [checklist de teste manual](README.md#checklist-de-teste-manual-na-tv) numa TV real antes de uma release.
