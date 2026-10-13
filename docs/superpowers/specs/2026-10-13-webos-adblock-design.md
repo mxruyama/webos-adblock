@@ -115,15 +115,15 @@ Ordem: Node `https` com `ca` = `certs/cacert.pem` (bundle Mozilla, segue até 5 
 `curl -fsSL --max-time 60` → `wget -q -O -`. Retorna o texto ou erro com a última mensagem.
 
 ### Base do hosts
-Se nosso mount está ativo, base = `hosts.block` sem o nosso bloco (tudo antes do cabeçalho `# >>> webos-adblock`).
-Senão, base = conteúdo atual de `/etc/hosts` (inclui o bloqueio de updates do HBChannel, se ativo).
+Sempre a camada de baixo: com nosso mount ativo, as listas são baixadas primeiro, depois `unmountOurs()` e só então a base é lida de `/etc/hosts`
+(assim mudanças na opção de bloqueio de updates do HBChannel entram no próximo "Atualizar"). Sem mount nosso, base = `/etc/hosts` atual.
 
 ### Mount (`lib/mounts.js`)
 - `isOurMount()`: `stat(/etc/hosts)` e `stat(hosts.block)` com mesmo `dev` e `ino`.
 - `mount()`: `mount --bind <BLOCK_FILE> /etc/hosts`.
 - `unmountOurs()`: enquanto `isOurMount()` (máx. 3 tentativas) → `umount /etc/hosts`.
-- Atualizar com mount ativo: grava `hosts.block.tmp` → `unmountOurs()` → `rename` → `mount()`
-  (bind aponta para o inode, então reescrever no lugar com rename não teria efeito).
+- Atualizar com mount ativo: baixa/valida listas → `unmountOurs()` → lê base → monta texto → grava `hosts.block.tmp` → `rename` → `mount()`;
+  qualquer falha depois do `unmountOurs()` remonta o `hosts.block` anterior (rollback). O bind aponta para o inode, por isso o rename + remount.
 
 ### startup.sh (`lib/startup.js`, puro + IO fino)
 Bloco exato:
